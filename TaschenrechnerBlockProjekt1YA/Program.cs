@@ -42,6 +42,7 @@ namespace TaschenrechnerBlockProjekt1YA
                 else if(rechner.IsNumber(keyInfo.KeyChar) && rechner.IsNumber(pastinput)) // Current Input is Number && Past input is Number
                 {
                     decimal doubledigits = Convert.ToDecimal(keyInfo.KeyChar.ToString());
+                    pastinput = (char)Convert.ToDecimal(pastinput.ToString());
                     currentinput = pastinput * 10 + doubledigits;
 
                     (sum, pastinput, temp) = Aussrechnen(sum, pastinput, temp, currentinput, userview, rechner);
