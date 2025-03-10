@@ -6,6 +6,7 @@ namespace TaschenrechnerBlockProjekt1YA
     {
         static void Main(string[] args)
         {
+            bool comma = false;
             char pastinput = 's';
             decimal temp = '0';
             decimal sum = 0 ;
@@ -18,7 +19,19 @@ namespace TaschenrechnerBlockProjekt1YA
                 decimal currentinput = 0;
                 keyInfo = Console.ReadKey();
                 userview = userview + keyInfo.KeyChar.ToString();
-                stack.Push(keyInfo.KeyChar);
+                if(comma)
+                {
+                    string tempcomma = pastinput.ToString() + keyInfo.KeyChar;
+                    while(!rechner.IsOperator(keyInfo.KeyChar))
+                    {
+                        keyInfo = Console.ReadKey();
+                        stack.Push(keyInfo.KeyChar);
+                        tempcomma = tempcomma + keyInfo.KeyChar;
+                    }
+                    currentinput = Convert.ToDecimal(tempcomma);
+                    comma = false;
+                }
+                
                 rechner.Validate(pastinput, keyInfo.KeyChar);
                 if (rechner.IsNumber(keyInfo.KeyChar) && pastinput == 's') //First input
                 {
@@ -29,7 +42,7 @@ namespace TaschenrechnerBlockProjekt1YA
                 else if(rechner.IsNumber(keyInfo.KeyChar) && rechner.IsNumber(pastinput)) // Current Input is Number && Past input is Number
                 {
                     decimal doubledigits = Convert.ToDecimal(keyInfo.KeyChar.ToString());
-                    currentinput = currentinput * 10 + doubledigits;
+                    currentinput = pastinput * 10 + doubledigits;
 
                     (sum, pastinput, temp) = Aussrechnen(sum, pastinput, temp, currentinput, userview, rechner);
                 }
@@ -41,15 +54,30 @@ namespace TaschenrechnerBlockProjekt1YA
                 }
                 else if (rechner.IsOperator(keyInfo.KeyChar) && rechner.IsNumber(pastinput)) //Current Input Operator && Past input is Number
                 {
+                    stack.Push(pastinput);
                     pastinput = keyInfo.KeyChar;
+                    stack.Push(keyInfo.KeyChar);
+                }
+                else if(Char.IsPunctuation(keyInfo.KeyChar) && rechner.IsNumber(pastinput)) //Current Input Comma && Past input number
+                {
+                    //string tempcomma = pastinput.ToString() + keyInfo.KeyChar;
+                    //while(!rechner.IsOperator(keyInfo.KeyChar))
+                    //{
+                    //    keyInfo = Console.ReadKey();
+                    //    stack.Push(keyInfo.KeyChar);
+                    //    tempcomma = tempcomma + keyInfo.KeyChar;
+                    //}
+                    //currentinput = Convert.ToDecimal(tempcomma);
+                    comma = true;
                 }
                 else if (keyInfo.KeyChar == 'c') //Clear
                 {
                     pastinput = 's';
                     Console.Clear();
+                    stack.Clear();
                     Console.WriteLine("Cleared");
                 }
-                else if(keyInfo.Key == ConsoleKey.Backspace) //Erase
+                else if (keyInfo.Key == ConsoleKey.Backspace) //Erase
                 {
                     userview = userview.Remove(userview.Length - 2);
                     pastinput = userview.Last();
