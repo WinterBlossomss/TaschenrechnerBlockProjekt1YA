@@ -6,65 +6,72 @@ namespace Taschenrechner1YA
     {
         static void Main(string[] args)
         {
-            ConsoleKeyInfo keyInfo = new();
-            Taschenrechner rechner = new();
-            decimal tempdec = 0;
-            //char tempchar = 's';
-            char op = '+';
-            char lastinput = 'a';
-            char currentinput = 'w';
             string userview = "";
-            Stack<char> calc = new();
+            var trigonometry = new Stack<char>();
+            ConsoleKeyInfo keyInfo;
+            Taschenrechner rechner = new Taschenrechner();
+
+            Console.WriteLine("Real-time Calculator. Type an expression:");
+
             do
             {
-                keyInfo = Console.ReadKey();
-                if (!rechner.Validate(lastinput, keyInfo.KeyChar))
-                    Console.WriteLine("\b");
-                currentinput = keyInfo.KeyChar;
-                userview = userview + currentinput.ToString();
-                if (keyInfo.Key == ConsoleKey.Delete)
+                keyInfo = Console.ReadKey(true);
+                char keyChar = keyInfo.KeyChar;
+
+                if (rechner.IsValidInput(keyChar))
                 {
-                    calc.Pop();
-                    userview.Substring(0, userview.Length - 1);
-                    Console.WriteLine("\b");
+                    userview += keyChar;
+                    UpdateConsole(userview);
                 }
-                else if(rechner.IsNumber(currentinput))
+                else if (keyInfo.Key == ConsoleKey.Enter)
                 {
-                    if (rechner.IsNumber(lastinput))
+                    try
                     {
-                        tempdec = Convert.ToDecimal(tempdec.ToString() + currentinput.ToString());
+                        decimal result = rechner.EvaluateString(userview);
+                        Console.WriteLine($"\nResult: {result}");
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        calc.Push(Convert.ToChar(tempdec));
+                        Console.WriteLine($"\nError: {ex.Message}");
                     }
-                    switch (op)
-                    {
-                        case '+':
-                            {
-                                tempdec = rechner.Addition(tempdec, currentinput); break;
-                            }
-                        case '-':
-                            {
-                                tempdec = rechner.Addition(tempdec, currentinput); break;
-                            }
-                        case '*':
-                            {
-                                tempdec = rechner.Addition(tempdec, currentinput); break;
-                            }
-                        case '/':
-                            {
-                                tempdec = rechner.Addition(tempdec, currentinput); break;
-                            }
-                    }
+                    userview = "";
+                    Console.WriteLine("Type another expression:");
+                }
+                else if (keyInfo.Key == ConsoleKey.Backspace && userview.Length > 0)
+                {
+                    userview = userview.Substring(0, userview.Length - 1);
+                    UpdateConsole(userview);
                 }
                 else
                 {
-                    currentinput = op;
+                    Console.WriteLine("\nInvalid input. Try again.");
                 }
-
             } while (keyInfo.Key != ConsoleKey.Escape);
 
         }
+
+        static void UpdateConsole(string expression)
+        {
+            Taschenrechner rechner = new Taschenrechner();
+            Console.Clear();
+            if (rechner.IsValidExpression(expression))
+            {
+                try
+                {
+                    decimal result = rechner.EvaluateString(expression);
+                    Console.WriteLine($"Result: {result}");
+                }
+                catch
+                {
+                    Console.WriteLine("Result: Error");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Result: ");
+            }
+            Console.WriteLine(expression);
+        }
+
     }
 }
