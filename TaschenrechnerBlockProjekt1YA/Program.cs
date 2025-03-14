@@ -463,7 +463,7 @@ namespace TaschenrechnerBlockProjekt1YA
                     {
                         try
                         {
-                            eingegebenelaenge = decimal.Parse(Console.ReadLine());
+                            eingegebenelaenge = Convert.ToDecimal(Console.ReadLine());
                             error = false;
                         }
                         catch (Exception)
@@ -473,7 +473,7 @@ namespace TaschenrechnerBlockProjekt1YA
                         }
                     } while (error);
                     Console.WriteLine($"Meter: {eingegebenelaenge * 1000}");
-                    Console.WriteLine($"Meilen: {eingegebenelaenge / 1,609344}");
+                    Console.WriteLine($"Meilen: {eingegebenelaenge / 1.609344m}");
                     break;
                 case ConsoleKey.D3:
                     Console.Write("Meilen:");
@@ -481,7 +481,7 @@ namespace TaschenrechnerBlockProjekt1YA
                     {
                         try
                         {
-                            eingegebenelaenge = decimal.Parse(Console.ReadLine());
+                            eingegebenelaenge = Convert.ToDecimal(Console.ReadLine());
                             error = false;
                         }
                         catch (Exception)
@@ -491,7 +491,7 @@ namespace TaschenrechnerBlockProjekt1YA
                         }
                     } while (error);
                     Console.WriteLine($"Meter: {eingegebenelaenge * 1609,344}");
-                    Console.WriteLine($"Kilometer: {eingegebenelaenge * 1,609344}");
+                    Console.WriteLine($"Kilometer: {eingegebenelaenge * 1.609344m}");
 
                     break;
             }
@@ -506,7 +506,6 @@ namespace TaschenrechnerBlockProjekt1YA
             do
             {
                 decimal eingegebeneGewicht = 0;
-                decimal difference = 2.205M;
                 bool error = false;
                 Console.Clear();
                 Console.WriteLine("Gewicht");
