@@ -22,6 +22,7 @@ namespace TaschenrechnerBlockProjekt1YA
             Stack<decimal> values = new Stack<decimal>();
             string userView = "";
             bool error = false;
+            bool shouldReset = false;
             ConsoleKeyInfo keyInfo = new();
 
             operators.Push('+'); // Default starting operator
@@ -50,17 +51,15 @@ namespace TaschenrechnerBlockProjekt1YA
                         return;
                 }
             } while (error);
-            keyInfo = Console.ReadKey();
 
             //Taschenrechner
             do
             {
                 Console.Clear();
-                Console.WriteLine("Bitte geben sie ein mathematischer Ausdruck ein: ");
-                if(values.Count != 0)
-                    UpdateUserView(userView, values.Peek());
+                if (values.Count != 0)
+                    UpdateUserView(userView, values.Peek(), temp);
                 else
-                    UpdateUserView(userView);
+                    UpdateUserView(userView, 0, temp);
                 keyInfo = Console.ReadKey();
                 char keyChar = keyInfo.KeyChar;
 
@@ -87,6 +86,10 @@ namespace TaschenrechnerBlockProjekt1YA
                             continue;
                         }
                         decimal result = calculatedResults[selectedIndex - 1];
+
+                        Console.WriteLine($"Resultat: {result}\n");
+                        values.Push(result);
+                        userView = $"{result}";
                     }
                     else
                     {
@@ -146,6 +149,7 @@ namespace TaschenrechnerBlockProjekt1YA
                     Console.Clear();
                     Console.WriteLine(values.Peek());
                     userView = values.Peek().ToString();
+                    shouldReset = true;
                     pastInput = 's';
                 }
                 // Handle backspace
@@ -177,6 +181,10 @@ namespace TaschenrechnerBlockProjekt1YA
                 {
                     keyChar = '^';
                 }
+                if(keyInfo.Key == ConsoleKey.D3 && keyInfo.Modifiers == ConsoleModifiers.Shift)
+                {
+                    keyChar = '√';
+                }
                 else if (!rechner.IsValidInput(keyChar))
                     continue;
                 userView += keyChar;
@@ -184,6 +192,19 @@ namespace TaschenrechnerBlockProjekt1YA
                 // Handling für Zahlen
                 if (char.IsDigit(keyChar))
                 {
+                    if (shouldReset)
+                    {
+                        // Reset calculator state
+                        operators.Clear();
+                        values.Clear();
+                        operators.Push('+');
+                        values.Push(0);
+                        temp = "";
+                        userView = "";
+                        userView += keyChar;
+                        shouldReset = false;
+                    }
+
                     temp += keyChar;
                     pastInput = keyChar;
                     continue;
@@ -199,6 +220,53 @@ namespace TaschenrechnerBlockProjekt1YA
                     temp += '.';
                     userView += keyChar == ',' ? '.' : keyChar;
                 }
+
+                // Handling für Fakultät
+                else if (keyChar == '!')
+                {
+                    if (!string.IsNullOrEmpty(temp))
+                    {
+                        if (decimal.TryParse(temp, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal number))
+                        {
+                            if (number == Math.Floor(number) && number >= 0)
+                            {
+                                try
+                                {
+                                    int n = (int)number;
+                                    decimal result = rechner.Fakultaet(n);
+                                    temp = result.ToString(CultureInfo.InvariantCulture); // Store result in temp
+                                }
+                                catch (OverflowException ex)
+                                {
+                                    Console.WriteLine(ex.Message);
+                                    userView = userView.Remove(userView.Length - 1); // Remove '!' on error
+                                }
+                                catch (ArgumentOutOfRangeException ex)
+                                {
+                                    Console.WriteLine(ex.Message);
+                                    userView = userView.Remove(userView.Length - 1);
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Factorial requires a non-negative integer.");
+                                userView = userView.Remove(userView.Length - 1);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Invalid number for factorial.");
+                            userView = userView.Remove(userView.Length - 1);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Factorial requires a preceding number.");
+                        userView = userView.Remove(userView.Length - 1);
+                    }
+                    continue;
+                }
+
                 // Handling für negative Zahlen
                 else if (keyChar == '-' && (temp.Length == 0 || rechner.IsOperator(pastInput) || pastInput == '('))
                 {
@@ -333,14 +401,17 @@ namespace TaschenrechnerBlockProjekt1YA
 
 
         // Update user view
-        private static void UpdateUserView(string userView, decimal result)
+        private static void UpdateUserView(string userView, decimal stackResult, string temp)
         {
-            Console.WriteLine($"Result: {result}\t({angleMode})");
-            Console.WriteLine($"Input: {userView.Replace("◘", "")}");
-        }
-        private static void UpdateUserView(string userView)
-        {
-            Console.WriteLine($"Result: 0\t({angleMode})");
+            decimal currentResult = stackResult;
+            if (!string.IsNullOrEmpty(temp))
+            {
+                if (decimal.TryParse(temp, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal tempValue))
+                {
+                    currentResult = tempValue;
+                }
+            }
+            Console.WriteLine($"Result: {currentResult}\t({angleMode})");
             Console.WriteLine($"Input: {userView.Replace("◘", "")}");
         }
 
