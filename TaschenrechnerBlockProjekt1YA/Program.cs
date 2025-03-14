@@ -15,7 +15,6 @@ namespace TaschenrechnerBlockProjekt1YA
 
         static void Main(string[] args)
         {
-            int index = 0;
             char pastInput = 's';
             string temp = "";
             Stack<char> operators = new Stack<char>();
@@ -181,6 +180,7 @@ namespace TaschenrechnerBlockProjekt1YA
                 {
                     keyChar = '^';
                 }
+                //Wurzelzeichen für Wurzelziehen
                 if(keyInfo.Key == ConsoleKey.D3 && keyInfo.Modifiers == ConsoleModifiers.Shift)
                 {
                     keyChar = '√';
@@ -324,7 +324,7 @@ namespace TaschenrechnerBlockProjekt1YA
                     {
                         char func = operators.Pop();
                         decimal arg = values.Pop();
-                        values.Push(ApplyTrigFunction(func, arg, angleMode));
+                        values.Push(rechner.ApplyTrigFunction(func, arg, angleMode));
                     }
 
                     pastInput = keyChar;
@@ -341,7 +341,7 @@ namespace TaschenrechnerBlockProjekt1YA
                     }
 
                     // Handling für '^'
-                    bool isRightAssociative = keyChar == '^';
+                    bool isRightAssociative = keyChar == '^' || keyChar == '√';
                     int currentPrecedence = rechner.Precedence(keyChar);
 
                     while (operators.Count > 0 && operators.Peek() != '(' &&
@@ -376,27 +376,6 @@ namespace TaschenrechnerBlockProjekt1YA
             } while (keyInfo.Key != ConsoleKey.Escape);
         }
 
-        // Apply trigonometric functions
-        private static decimal ApplyTrigFunction(char func, decimal arg, string mode)
-        {
-            try
-            {
-                double angle = (double)arg;
-                if (mode == "DEG") angle *= Math.PI / 180.0;
-
-                return func switch
-                {
-                    'S' or 's' => (decimal)Math.Sin(angle),
-                    'C' or 'c' => (decimal)Math.Cos(angle),
-                    'T' or 't' => (decimal)Math.Tan(angle),
-                    _ => throw new InvalidOperationException("Invalid function")
-                };
-            }
-            catch (OverflowException)
-            {
-                throw new InvalidOperationException("Trigonometric result is undefined or too large.");
-            }
-        }
 
 
 
