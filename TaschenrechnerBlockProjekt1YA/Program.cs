@@ -3,60 +3,97 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Mathe;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TaschenrechnerBlockProjekt1YA
 {
     internal class Program
     {
         private static List<string> calculationHistory = new List<string>(); // Stores calculation history
+        private static List<decimal> calculatedResults = new List<decimal>(); // Stores calculated results
         private static string angleMode = "DEG"; // Tracks angle mode (DEG or RAD)
 
         static void Main(string[] args)
         {
+            int index = 0;
             char pastInput = 's';
             string temp = "";
             Stack<char> operators = new Stack<char>();
             Stack<decimal> values = new Stack<decimal>();
             string userView = "";
-            ConsoleKeyInfo keyInfo = Console.ReadKey(true);
+            bool error = false;
+            ConsoleKeyInfo keyInfo = new();
 
             operators.Push('+'); // Default starting operator
             values.Push(0);
             Taschenrechner rechner = new Taschenrechner();
 
-            Console.WriteLine("Welcome to the calculator!\n\n");
+            Console.WriteLine("Welcome to the calculator!\n");
             Console.WriteLine("1. Einheitenumrechner");
             Console.WriteLine("2. Taschenrechner");
             Console.WriteLine("\n Press ESC to close the Program");
-            keyInfo = Console.ReadKey(true);
-            switch (keyInfo.Key)
+            do
             {
-                case ConsoleKey.D1:
-                    Einheitenrechner();
-                    break;
-                case ConsoleKey.D2:
-                    break;
-            }
+                keyInfo = Console.ReadKey();
+                switch (keyInfo.Key)
+                {
+                    case ConsoleKey.D1:
+                        Einheitenrechner();
+                        error = false;
+                        break;
+                    case ConsoleKey.D2:
+                        error = false;
+                        break; ;
+                    default:
+                        Console.WriteLine("Ungültige Eingabe");
+                        error = true;
+                        return;
+                }
+            } while (error);
+            keyInfo = Console.ReadKey();
 
-
-
-
-            while (true)
+            //Taschenrechner
+            do
             {
                 Console.Clear();
-                UpdateUserView(userView, values.Peek());
-
-                keyInfo = Console.ReadKey(true);
+                Console.WriteLine("Bitte geben sie ein mathematischer Ausdruck ein: ");
+                if(values.Count != 0)
+                    UpdateUserView(userView, values.Peek());
+                else
+                    UpdateUserView(userView);
+                keyInfo = Console.ReadKey();
                 char keyChar = keyInfo.KeyChar;
-
-                // Exit on Escape key
-                if (keyInfo.Key == ConsoleKey.Escape)
-                    break;
 
                 // Show history on 'H' key
                 if (keyInfo.Key == ConsoleKey.H)
                 {
-                    ShowHistory();
+                    Console.Clear();
+                    Console.WriteLine("---------------------------------------------");
+                    Console.WriteLine("Verlauf der Berechnungen:\n");
+                    foreach (string entry in calculationHistory)
+                    {
+                        Console.WriteLine($"  {entry}");
+                    }
+                    Console.WriteLine("---------------------------------------------");
+                    Console.WriteLine("Wollen Sie eine Resultat auswählen? (J/N)");
+                    keyInfo = Console.ReadKey(true);
+                    if (keyInfo.Key == ConsoleKey.J)
+                    {
+                        Console.WriteLine("Geben Sie die Nummer des Resultats ein:");
+                        string input = Console.ReadLine();
+                        if (!int.TryParse(input, out int selectedIndex) || selectedIndex < 1 || selectedIndex > calculatedResults.Count)
+                        {
+                            Console.WriteLine("Ungültige Index.");
+                            continue;
+                        }
+                        decimal result = calculatedResults[selectedIndex - 1];
+                    }
+                    else
+                    {
+                        Console.Clear();
+                    }
+                    Console.WriteLine("\nDrücken Sie eine Taste um fortzusetzen...");
+                    Console.ReadKey();
                     continue;
                 }
 
@@ -68,8 +105,8 @@ namespace TaschenrechnerBlockProjekt1YA
                     System.Threading.Thread.Sleep(1000);
                     continue;
                 }
-                // Handle equal sign
-                if (keyInfo.Key == ConsoleKey.Enter)
+                // Handle enter key
+               if (keyInfo.Key == ConsoleKey.Enter)
                 {
                     if (!string.IsNullOrEmpty(temp))
                     {
@@ -84,8 +121,11 @@ namespace TaschenrechnerBlockProjekt1YA
                             Console.WriteLine("Error: Unmatched parenthesis");
                             break;
                         }
-
+                        if (values.Count == 0)
+                            break;
                         decimal second = values.Pop();
+                        if (values.Count == 0)
+                            break;
                         decimal first = values.Pop();
                         try
                         {
@@ -97,9 +137,11 @@ namespace TaschenrechnerBlockProjekt1YA
                             return;
                         }
                     }
-
+                    if (values.Count == 0)
+                        continue;
                     // Add to history
-                    calculationHistory.Add($"{userView.Replace("◘", "")} = {values.Peek()}");
+                    calculationHistory.Add($"{calculationHistory.Count + 1}: {userView.Replace("◘", "")} = {values.Peek()}");
+                    calculatedResults.Add(values.Peek());
 
                     Console.Clear();
                     Console.WriteLine(values.Peek());
@@ -130,10 +172,7 @@ namespace TaschenrechnerBlockProjekt1YA
                     continue;
                 }
 
-
-
-                // Validate input
-
+                // Circumflex für trigonometrische Funktionen
                 if (keyInfo.Key == ConsoleKey.D6 && keyInfo.Modifiers == ConsoleModifiers.Shift)
                 {
                     keyChar = '^';
@@ -142,13 +181,32 @@ namespace TaschenrechnerBlockProjekt1YA
                     continue;
                 userView += keyChar;
 
-                // Handle digits and negative numbers
-                if (char.IsDigit(keyChar) || keyChar == '-' || keyChar == '.' || keyChar == ',')
+                // Handling für Zahlen
+                if (char.IsDigit(keyChar))
                 {
                     temp += keyChar;
                     pastInput = keyChar;
                     continue;
                 }
+
+                // Handling für Dezimalzahlen
+                if (keyChar == '.' || keyChar == ',')
+                {
+                    if (temp.Contains('.'))
+                    {
+                        continue; // Ignore duplicate decimal points
+                    }
+                    temp += '.';
+                    userView += keyChar == ',' ? '.' : keyChar;
+                }
+                // Handling für negative Zahlen
+                else if (keyChar == '-' && (temp.Length == 0 || rechner.IsOperator(pastInput) || pastInput == '('))
+                {
+                    temp += keyChar;
+                    userView += keyChar;
+                }
+
+                // Handling für Buchstaben
                 if (char.IsLetter(keyChar))
                 {
                     operators.Push(keyChar);
@@ -156,7 +214,7 @@ namespace TaschenrechnerBlockProjekt1YA
                     continue;
                 }
 
-                // Handle opening bracket
+                // Handling für offene Klammern
                 if (keyChar == '(')
                 {
                     operators.Push(keyChar);
@@ -164,7 +222,7 @@ namespace TaschenrechnerBlockProjekt1YA
                     continue;
                 }
 
-                // Handle closing bracket
+                // Handling für geschlossene Klammern
                 if (keyChar == ')')
                 {
                     if (!string.IsNullOrEmpty(temp))
@@ -190,10 +248,10 @@ namespace TaschenrechnerBlockProjekt1YA
 
                     if (operators.Count > 0 && operators.Peek() == '(')
                     {
-                        operators.Pop(); // Remove '('
+                        operators.Pop(); // Entfernt '('
                     }
 
-                    // Apply trigonometric function if present
+                    // Berechnung der trigonometrischen Funktionen wenn vorhanden
                     if (operators.Count > 0 && "sctSCT".Contains(operators.Peek().ToString()))
                     {
                         char func = operators.Pop();
@@ -205,7 +263,7 @@ namespace TaschenrechnerBlockProjekt1YA
                     continue;
                 }
 
-                // Handle operators (+, -, *, /, ^)
+                // Handling von Operatoren (+, -, *, /, ^)
                 if (rechner.IsOperator(keyChar))
                 {
                     if (!string.IsNullOrEmpty(temp))
@@ -214,7 +272,7 @@ namespace TaschenrechnerBlockProjekt1YA
                         temp = "";
                     }
 
-                    // Handle right-associativity for '^'
+                    // Handling für '^'
                     bool isRightAssociative = keyChar == '^';
                     int currentPrecedence = rechner.Precedence(keyChar);
 
@@ -222,6 +280,12 @@ namespace TaschenrechnerBlockProjekt1YA
                            (rechner.Precedence(operators.Peek()) > currentPrecedence ||
                            (!isRightAssociative && rechner.Precedence(operators.Peek()) >= currentPrecedence)))
                     {
+                        // When processing operators
+                        if (values.Count < 2)
+                        {
+                            Console.WriteLine("Error: Not enough values for operation.");
+                            break;
+                        }
                         decimal second = values.Pop();
                         decimal first = values.Pop();
                         try
@@ -241,44 +305,42 @@ namespace TaschenrechnerBlockProjekt1YA
                 }
 
 
-            }
+            } while (keyInfo.Key != ConsoleKey.Escape);
         }
 
         // Apply trigonometric functions
         private static decimal ApplyTrigFunction(char func, decimal arg, string mode)
         {
-            double angle = (double)arg;
-            if (mode == "DEG") angle *= Math.PI / 180.0;
-
-            return func switch
+            try
             {
-                'S' => (decimal)Math.Sin(angle),
-                'C' => (decimal)Math.Cos(angle),
-                'T' => (decimal)Math.Tan(angle),
-                's' => (decimal)Math.Sin(angle),
-                'c' => (decimal)Math.Cos(angle),
-                't' => (decimal)Math.Tan(angle),
-                _ => throw new InvalidOperationException()
-            };
-        }
+                double angle = (double)arg;
+                if (mode == "DEG") angle *= Math.PI / 180.0;
 
-        // Show calculation history
-        private static void ShowHistory()
-        {
-            Console.Clear();
-            Console.WriteLine("Calculation History:\n");
-            foreach (string entry in calculationHistory)
-            {
-                Console.WriteLine($"  {entry}");
+                return func switch
+                {
+                    'S' or 's' => (decimal)Math.Sin(angle),
+                    'C' or 'c' => (decimal)Math.Cos(angle),
+                    'T' or 't' => (decimal)Math.Tan(angle),
+                    _ => throw new InvalidOperationException("Invalid function")
+                };
             }
-            Console.WriteLine("\nPress any key to continue...");
-            Console.ReadKey();
+            catch (OverflowException)
+            {
+                throw new InvalidOperationException("Trigonometric result is undefined or too large.");
+            }
         }
+
+
 
         // Update user view
         private static void UpdateUserView(string userView, decimal result)
         {
             Console.WriteLine($"Result: {result}\t({angleMode})");
+            Console.WriteLine($"Input: {userView.Replace("◘", "")}");
+        }
+        private static void UpdateUserView(string userView)
+        {
+            Console.WriteLine($"Result: 0\t({angleMode})");
             Console.WriteLine($"Input: {userView.Replace("◘", "")}");
         }
 
@@ -294,7 +356,7 @@ namespace TaschenrechnerBlockProjekt1YA
                 Console.WriteLine("3. Temperatur");
                 Console.WriteLine("Drücken Sie die Escape-Taste, wenn Sie zum vorherigen Menü zurückkehren möchten");
 
-                
+                keyInfo = Console.ReadKey();
                 switch (keyInfo.Key)
                 {
                     case ConsoleKey.D1:
@@ -314,6 +376,7 @@ namespace TaschenrechnerBlockProjekt1YA
         {
             decimal eingegebenelaenge = 0;
             bool error = false;
+            Console.Clear();
             Console.WriteLine("Laengen");
             Console.WriteLine("Was wollen Sie umrechnen?");
             Console.WriteLine("1. Meter");
@@ -322,16 +385,16 @@ namespace TaschenrechnerBlockProjekt1YA
 
             ConsoleKeyInfo keyInfo = Console.ReadKey(true);
             Console.Clear();
-            Console.WriteLine("Geben Sie den Wert ein:");
+            Console.WriteLine("Geben Sie einen Wert ein:");
             switch (keyInfo.Key)
             {
                 case ConsoleKey.D1:
-                    Console.WriteLine("Meter:");
+                    Console.Write("Meter:");
                     do
                     {
                         try
                         {
-                            eingegebenelaenge = decimal.Parse(Console.ReadLine());
+                            eingegebenelaenge = Convert.ToDecimal(Console.ReadLine());
                             error = false;
                         }
                         catch (Exception)
@@ -345,7 +408,7 @@ namespace TaschenrechnerBlockProjekt1YA
 
                     break;
                 case ConsoleKey.D2:
-                    Console.WriteLine("Kilometer:");
+                    Console.Write("Kilometer:");
                     do
                     {
                         try
@@ -363,7 +426,7 @@ namespace TaschenrechnerBlockProjekt1YA
                     Console.WriteLine($"Meilen: {eingegebenelaenge / 1,609344}");
                     break;
                 case ConsoleKey.D3:
-                    Console.WriteLine("Meilen:");
+                    Console.Write("Meilen:");
                     do
                     {
                         try
@@ -382,7 +445,7 @@ namespace TaschenrechnerBlockProjekt1YA
 
                     break;
             }
-
+            Console.ReadKey();
             Console.Clear();
             
 
@@ -393,6 +456,8 @@ namespace TaschenrechnerBlockProjekt1YA
             do
             {
                 decimal eingegebeneGewicht = 0;
+                decimal difference = 2.205M;
+                bool error = false;
                 Console.Clear();
                 Console.WriteLine("Gewicht");
                 Console.WriteLine("Was wollen Sie umrechnen?");
@@ -401,18 +466,42 @@ namespace TaschenrechnerBlockProjekt1YA
 
                 keyInfo = Console.ReadKey(true);
                 Console.Clear();
-                Console.WriteLine("Geben Sie den Wert ein:");
+                Console.WriteLine("Geben Sie einen Wert ein:");
                 switch (keyInfo.Key)
                 {
                     case ConsoleKey.D1:
-                        Console.Write("Kilogramm:");
-                        eingegebeneGewicht = decimal.Parse(Console.ReadLine());
-                        Console.Write($"Pfund: {eingegebeneGewicht * 2,20462}");
+                        do
+                        {
+                            Console.Write("Kilogramm: ");
+                            string input = Console.ReadLine();
+                            if (decimal.TryParse(input.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out eingegebeneGewicht))
+                            {
+                                error = false;
+                                Console.WriteLine($"Pfund: {eingegebeneGewicht * 2.20462m}");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Ungültige Eingabe. Bitte versuchen Sie es erneut.");
+                                error = true;
+                            }
+                        } while (error);
                         break;
                     case ConsoleKey.D2:
-                        Console.WriteLine("Pfund:");
-                        eingegebeneGewicht = decimal.Parse(Console.ReadLine());
-                        Console.WriteLine($"Kilogramm: {eingegebeneGewicht / 2,20462}");
+                        do
+                        {
+                            Console.Write("Pfund: ");
+                            string input = Console.ReadLine();
+                            if (decimal.TryParse(input.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out eingegebeneGewicht))
+                            {
+                                error = false;
+                                Console.WriteLine($"Pfund: {eingegebeneGewicht / 2.20462m}");
+                            }
+                            else
+                            {
+                                Console.WriteLine("Ungültige Eingabe. Bitte versuchen Sie es erneut.");
+                                error = true;
+                            }
+                        } while (error);
                         break;
                 }
                 Console.ReadKey();
@@ -423,6 +512,7 @@ namespace TaschenrechnerBlockProjekt1YA
         private static void Temperatur()
         {
             decimal eingegebeneTemperatur = 0;
+            bool error = false;
             Console.Clear();
             Console.WriteLine("Temperatur");
             Console.WriteLine("Was wollen Sie umrechnen?");
@@ -430,18 +520,45 @@ namespace TaschenrechnerBlockProjekt1YA
             Console.WriteLine("2. Fahrenheit");
             ConsoleKeyInfo keyInfo = Console.ReadKey(true);
             Console.Clear();
-            Console.WriteLine("Geben Sie den Wert ein:");
+            Console.WriteLine("Geben Sie einen Wert ein:");
             switch( keyInfo.Key)
             {
                 case ConsoleKey.D1:
-                    Console.Write("1. Celsius: ");
-                    eingegebeneTemperatur = decimal.Parse(Console.ReadLine());
-                    Console.WriteLine($"Fahrenheit: {eingegebeneTemperatur * 9 / 5 + 32}");
+                    Console.Write(" Celsius: ");
+                    do
+                    {
+                        Console.Write("Celsius: ");
+                        string input = Console.ReadLine();
+                        if (decimal.TryParse(input.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out eingegebeneTemperatur))
+                        {
+                            error = false;
+                            Console.WriteLine($" Fahrenheit: {eingegebeneTemperatur * 9 / 5 + 32}");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Ungültige Eingabe. Bitte versuchen Sie es erneut.");
+                            error = true;
+                        }
+                    } while (error);
+                    
                     break;
                 case ConsoleKey.D2:
-                    Console.Write("2. Fahrenheit: ");
-                    eingegebeneTemperatur = decimal.Parse(Console.ReadLine());
-                    Console.WriteLine($"Celsius: {(eingegebeneTemperatur - 32) * 5 / 9}");
+                    do
+                    {
+                        Console.Write(" Fahrenheit: ");
+                        string input = Console.ReadLine();
+                        if (decimal.TryParse(input.Replace(',', '.'), NumberStyles.Any, CultureInfo.InvariantCulture, out eingegebeneTemperatur))
+                        {
+                            error = false;
+                            Console.WriteLine($" Celsius: {(eingegebeneTemperatur - 32) * 5 / 9}");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Ungültige Eingabe. Bitte versuchen Sie es erneut.");
+                            error = true;
+                        }
+                    } while (error);
+                    
                     break;
             }
             Console.ReadKey();
